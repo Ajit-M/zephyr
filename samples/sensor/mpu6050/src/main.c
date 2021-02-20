@@ -27,7 +27,7 @@ static const char *now_str(void)
 
 	snprintf(buf, sizeof(buf), "%u:%02u:%02u.%03u",
 		 h, min, s, ms);
-	return buf;
+	return buf; //return time in Hours minutes seconds and milliseconds
 }
 
 static int process_mpu6050(const struct device *dev)
@@ -87,6 +87,7 @@ static void handle_mpu6050_drdy(const struct device *dev,
 void main(void)
 {
 	const char *const label = DT_LABEL(DT_INST(0, invensense_mpu6050));
+
 	const struct device *mpu6050 = device_get_binding(label);
 
 	if (!mpu6050) {
@@ -108,6 +109,7 @@ void main(void)
 #endif
 
 	while (!IS_ENABLED(CONFIG_MPU6050_TRIGGER)) {
+		// Getting data from the sensor channels
 		int rc = process_mpu6050(mpu6050);
 
 		if (rc != 0) {

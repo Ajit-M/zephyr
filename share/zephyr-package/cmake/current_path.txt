@@ -1,0 +1,1 @@
+/home/autopilot/zephyrproject/zephyr/share/zephyr-package/cmake

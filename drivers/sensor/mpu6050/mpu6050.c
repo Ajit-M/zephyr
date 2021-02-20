@@ -6,6 +6,8 @@
 
 #define DT_DRV_COMPAT invensense_mpu6050
 
+
+
 #include <drivers/i2c.h>
 #include <init.h>
 #include <sys/byteorder.h>
@@ -13,6 +15,15 @@
 #include <logging/log.h>
 
 #include "mpu6050.h"
+
+
+/**
+ *
+ * @brief - Converting the 
+ */
+
+
+
 
 LOG_MODULE_REGISTER(MPU6050, CONFIG_SENSOR_LOG_LEVEL);
 
@@ -27,6 +38,9 @@ static void mpu6050_convert_accel(struct sensor_value *val, int16_t raw_val,
 	val->val2 = conv_val % 1000000;
 }
 
+
+
+ 
 /* see "Gyroscope Measurements" section from register map description */
 static void mpu6050_convert_gyro(struct sensor_value *val, int16_t raw_val,
 				 uint16_t sensitivity_x10)
@@ -38,6 +52,10 @@ static void mpu6050_convert_gyro(struct sensor_value *val, int16_t raw_val,
 	val->val1 = conv_val / 1000000;
 	val->val2 = conv_val % 1000000;
 }
+
+
+
+
 
 /* see "Temperature Measurement" section from register map description */
 static inline void mpu6050_convert_temp(struct sensor_value *val,
@@ -55,6 +73,13 @@ static inline void mpu6050_convert_temp(struct sensor_value *val,
 	}
 }
 
+
+
+/* 
+	(*) This function is used for accessing the fetched data from the sensor, that is stored in the device object 
+ */
+
+
 static int mpu6050_channel_get(const struct device *dev,
 			       enum sensor_channel chan,
 			       struct sensor_value *val)
@@ -62,6 +87,7 @@ static int mpu6050_channel_get(const struct device *dev,
 	struct mpu6050_data *drv_data = dev->data;
 
 	switch (chan) {
+	
 	case SENSOR_CHAN_ACCEL_XYZ:
 		mpu6050_convert_accel(val, drv_data->accel_x,
 				      drv_data->accel_sensitivity_shift);
@@ -70,18 +96,22 @@ static int mpu6050_channel_get(const struct device *dev,
 		mpu6050_convert_accel(val + 2, drv_data->accel_z,
 				      drv_data->accel_sensitivity_shift);
 		break;
+
 	case SENSOR_CHAN_ACCEL_X:
 		mpu6050_convert_accel(val, drv_data->accel_x,
 				      drv_data->accel_sensitivity_shift);
 		break;
+
 	case SENSOR_CHAN_ACCEL_Y:
 		mpu6050_convert_accel(val, drv_data->accel_y,
 				      drv_data->accel_sensitivity_shift);
 		break;
+
 	case SENSOR_CHAN_ACCEL_Z:
 		mpu6050_convert_accel(val, drv_data->accel_z,
 				      drv_data->accel_sensitivity_shift);
 		break;
+
 	case SENSOR_CHAN_GYRO_XYZ:
 		mpu6050_convert_gyro(val, drv_data->gyro_x,
 				     drv_data->gyro_sensitivity_x10);
@@ -90,24 +120,36 @@ static int mpu6050_channel_get(const struct device *dev,
 		mpu6050_convert_gyro(val + 2, drv_data->gyro_z,
 				     drv_data->gyro_sensitivity_x10);
 		break;
+
 	case SENSOR_CHAN_GYRO_X:
 		mpu6050_convert_gyro(val, drv_data->gyro_x,
 				     drv_data->gyro_sensitivity_x10);
 		break;
+
+
 	case SENSOR_CHAN_GYRO_Y:
 		mpu6050_convert_gyro(val, drv_data->gyro_y,
 				     drv_data->gyro_sensitivity_x10);
 		break;
+
 	case SENSOR_CHAN_GYRO_Z:
 		mpu6050_convert_gyro(val, drv_data->gyro_z,
 				     drv_data->gyro_sensitivity_x10);
 		break;
+
 	default: /* chan == SENSOR_CHAN_DIE_TEMP */
 		mpu6050_convert_temp(val, drv_data->temp);
 	}
 
 	return 0;
 }
+
+
+/* 
+	(*) Sample Fetch only runs once but i guess it will be set the sensor enum for choosing the channels
+	(*) Q) So where th
+ */
+
 
 static int mpu6050_sample_fetch(const struct device *dev,
 				enum sensor_channel chan)
@@ -116,11 +158,25 @@ static int mpu6050_sample_fetch(const struct device *dev,
 	const struct mpu6050_config *cfg = dev->config;
 	int16_t buf[7];
 
+	/* 
+		(*) Burst reading of the device register, it is read and stored in the buffer, which is
+		then shifted to the memory assigned to the device data structure object. 
+		(*) A point to note that, before assigning the data to the struct it is converted to the 
+		16-bit integer from big-endian to the host endianness
+		(*) This function needs to be called everytime the task needs the data, then 
+
+	 */
+
+
 	if (i2c_burst_read(drv_data->i2c, cfg->i2c_addr,
 			   MPU6050_REG_DATA_START, (uint8_t *)buf, 14) < 0) {
 		LOG_ERR("Failed to read data sample.");
 		return -EIO;
 	}
+
+	/* 
+		Endianness conversion
+	 */
 
 	drv_data->accel_x = sys_be16_to_cpu(buf[0]);
 	drv_data->accel_y = sys_be16_to_cpu(buf[1]);
@@ -133,6 +189,9 @@ static int mpu6050_sample_fetch(const struct device *dev,
 	return 0;
 }
 
+
+
+
 static const struct sensor_driver_api mpu6050_driver_api = {
 #if CONFIG_MPU6050_TRIGGER
 	.trigger_set = mpu6050_trigger_set,
@@ -141,11 +200,22 @@ static const struct sensor_driver_api mpu6050_driver_api = {
 	.channel_get = mpu6050_channel_get,
 };
 
+
+
+
+
+
 int mpu6050_init(const struct device *dev)
-{
+{	
+	printk("Initialization of the device from the init fuction \n");
+
 	struct mpu6050_data *drv_data = dev->data;
+
 	const struct mpu6050_config *cfg = dev->config;
+
 	uint8_t id, i;
+
+	
 
 	drv_data->i2c = device_get_binding(cfg->i2c_label);
 	if (drv_data->i2c == NULL) {
@@ -226,7 +296,31 @@ int mpu6050_init(const struct device *dev)
 	return 0;
 }
 
+
+
+void test_func(){
+
+	// while(true){
+	printk("I am in test init function \n");
+	// k_sleep(K_SECONDS(1000));
+	// }
+	// k_sleep(K_SECONDS(1000));
+} 
+
+
+/* 
+
+	(*) This is where the configuration parameters of the sensor is fetched and stored in a struct called mpu6050 
+	config with two main properties named as label and register address and if the interrupt trigger is also 
+	configured.
+	(*) I am still not able to understand how is it able to access the struct which is the parameter to the variadic
+	macro of DEVICE_DT_INST_DEFINE.(But it happens!)
+
+ */
+
+
 static struct mpu6050_data mpu6050_driver;
+
 static const struct mpu6050_config mpu6050_cfg = {
 	.i2c_label = DT_INST_BUS_LABEL(0),
 	.i2c_addr = DT_INST_REG_ADDR(0),
