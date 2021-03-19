@@ -6,8 +6,9 @@
 #ifndef DMPKEY_H__
 #define DMPKEY_H__
 
-/* 
-    Not much to change over here
+/**
+ *  @author - Ajit Mutalik
+ *  @comment - Not much to change over here
  */
 
 

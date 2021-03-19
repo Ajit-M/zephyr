@@ -29,10 +29,40 @@
 #define MPU6050_REG_PWR_MGMT1		0x6B
 #define MPU6050_SLEEP_EN		BIT(6)
 
+#define MPU6050_RA_USER_CTRL        0x6A
+
+#define MPU6050_USERCTRL_DMP_EN_BIT             BIT(7)
+#define MPU6050_USERCTRL_FIFO_EN_BIT            BIT(6)
+#define MPU6050_USERCTRL_I2C_MST_EN_BIT         BIT(5)
+#define MPU6050_USERCTRL_I2C_IF_DIS_BIT         BIT(4)
+#define MPU6050_USERCTRL_DMP_RESET_BIT          BIT(3)
+#define MPU6050_USERCTRL_FIFO_RESET_BIT         BIT(2)
+#define MPU6050_USERCTRL_I2C_MST_RESET_BIT      BIT(1)
+#define MPU6050_USERCTRL_SIG_COND_RESET_BIT     BIT(0)
+
+/* 
+	(*) Why the heck two different registers for the lower bit and higher bit?
+	--> The answer to this question is that, when using the IMU Zero Library for calibrating the IMU, every axis gets 
+		two values the lower and upper offset, the USR in the macro stands for the User set offset to the IMU.
+
+ */
+#define MPU6050_RA_XG_OFFS_USRH     0x13 //[15:0] XG_OFFS_USR
+#define MPU6050_RA_XG_OFFS_USRL     0x14
+
+#define MPU6050_RA_YG_OFFS_USRH     0x15 //[15:0] YG_OFFS_USR
+#define MPU6050_RA_YG_OFFS_USRL     0x16
+
+#define MPU6050_RA_ZG_OFFS_USRH     0x17 //[15:0] ZG_OFFS_USR
+#define MPU6050_RA_ZG_OFFS_USRL     0x18
+
+
+
 /* measured in degrees/sec x10 to avoid floating point */
 static const uint16_t mpu6050_gyro_sensitivity_x10[] = {
 	1310, 655, 328, 164
 };
+
+
 
 struct mpu6050_data {
 	const struct device *i2c;
@@ -68,6 +98,9 @@ struct mpu6050_data {
 #endif /* CONFIG_MPU6050_TRIGGER */
 };
 
+
+
+
 struct mpu6050_config {
 	const char *i2c_label;
 	uint16_t i2c_addr;
@@ -77,6 +110,10 @@ struct mpu6050_config {
 	const char *int_label;
 #endif /* CONFIG_MPU6050_TRIGGER */
 };
+
+
+
+
 
 #ifdef CONFIG_MPU6050_TRIGGER
 int mpu6050_trigger_set(const struct device *dev,

@@ -4,12 +4,11 @@
  $
  */
 
-/* 
 
-   Not much to change over here
-
+/**
+ *  @author - Ajit Mutalik
+ *  @comment - Not much to change over here
  */
-
 
 #ifndef DMPMAP_H
 #define DMPMAP_H
