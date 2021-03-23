@@ -13,7 +13,8 @@
 #include <sys/byteorder.h>
 #include <drivers/sensor.h>
 #include <logging/log.h>
-
+#include <stdlib.h>
+#include <math.h>
 #include "mpu6050.h"
 
 
@@ -368,7 +369,7 @@ int setZGyroOffset(struct mpu6050_data *drv_data, const struct mpu6050_config *c
  *  Q) Why tf this getDeviceID() < 0x38 ? (I understand that there is difference between registers for the accel offset 
  * but how does this differentiate the things)
 */
-void PID(uint8_t ReadAddress, float kP,float kI, uint8_t Loops){
+void PID(struct mpu6050_data *drv_data, const struct mpu6050_config *cfg, uint8_t ReadAddress, float kP,float kI, uint8_t Loops){
 	
 	uint8_t SaveAddress = (ReadAddress == 0x3B)?((getDeviceID() < 0x38 )? 0x06:0x77):0x13;
 	int16_t  Data;
@@ -377,23 +378,20 @@ void PID(uint8_t ReadAddress, float kP,float kI, uint8_t Loops){
 	uint8_t shift =(SaveAddress == 0x77)?3:2;
 	float Error, PTerm, ITerm[3];
 	int16_t eSample;
-	uint32_t eSum ;
+	uint32_t eSum;
  
 
-	Serial.write('>');
+	// Serial.write('>');
 	for (int i = 0; i < 3; i++) {
-		i2c_reg_read_byte(drv_data->i2c, cfg->i2c_addr,SaveAddress + (i * shift) ){
-
+		i2c_burst_read(drv_data->i2c, cfg->i2c_addr,SaveAddress + (i * shift), &Data, 2);
+				Reading = Data;
+			if(SaveAddress != 0x13){
+				BitZero[i] = Data & 1;										 // Capture Bit Zero to properly handle Accelerometer calibration
+				ITerm[i] = ((float)Reading) * 8;
+				} else {
+				ITerm[i] = Reading * 4;
+			}
 		}
-		I2Cdev::readWords(devAddr, SaveAddress + (i * shift), 1, (uint16_t *)&Data); // reads 1 or more 16 bit integers (Word)
-		Reading = Data;
-		if(SaveAddress != 0x13){
-			BitZero[i] = Data & 1;										 // Capture Bit Zero to properly handle Accelerometer calibration
-			ITerm[i] = ((float)Reading) * 8;
-			} else {
-			ITerm[i] = Reading * 4;
-		}
-	}
 
 
 	for (int L = 0; L < Loops; L++) {
@@ -401,7 +399,7 @@ void PID(uint8_t ReadAddress, float kP,float kI, uint8_t Loops){
 		for (int c = 0; c < 100; c++) {// 100 PI Calculations
 			eSum = 0;
 			for (int i = 0; i < 3; i++) {
-				I2Cdev::readWords(devAddr, ReadAddress + (i * 2), 1, (uint16_t *)&Data); // reads 1 or more 16 bit integers (Word)
+				i2c_burst_read(drv_data->i2c, cfg->i2c_addr,ReadAddress + (i * 2), &Data, 2);
 				Reading = Data;
 				if ((ReadAddress == 0x3B)&&(i == 2)) Reading -= 16384;	//remove Gravity
 				Error = -Reading;
@@ -412,17 +410,17 @@ void PID(uint8_t ReadAddress, float kP,float kI, uint8_t Loops){
 					Data = round((PTerm + ITerm[i] ) / 8);		//Compute PID Output
 					Data = ((Data)&0xFFFE) |BitZero[i];			// Insert Bit0 Saved at beginning
 				} else Data = round((PTerm + ITerm[i] ) / 4);	//Compute PID Output
-				I2Cdev::writeWords(devAddr, SaveAddress + (i * shift), 1, (uint16_t *)&Data);
+				i2c_burst_write(drv_data->i2c, cfg->i2c_addr,SaveAddress + (i * shift),&Data, 2);
 			}
 			if((c == 99) && eSum > 1000){						// Error is still to great to continue 
 				c = 0;
-				Serial.write('*');
+				// Serial.write('*');
 			}
 			if((eSum * ((ReadAddress == 0x3B)?.05: 1)) < 5) eSample++;	// Successfully found offsets prepare to  advance
 			if((eSum < 100) && (c > 10) && (eSample >= 10)) break;		// Advance to next Loop
 			delay(1);
 		}
-		Serial.write('.');
+		// Serial.write('.');
 		kP *= .75;
 		kI *= .75;
 		for (int i = 0; i < 3; i++){
@@ -430,47 +428,70 @@ void PID(uint8_t ReadAddress, float kP,float kI, uint8_t Loops){
 				Data = round((ITerm[i] ) / 8);		//Compute PID Output
 				Data = ((Data)&0xFFFE) |BitZero[i];	// Insert Bit0 Saved at beginning
 			} else Data = round((ITerm[i]) / 4);
-			I2Cdev::writeWords(devAddr, SaveAddress + (i * shift), 1, (uint16_t *)&Data);
+			i2c_burst_write(drv_data->i2c, cfg->i2c_addr,SaveAddress + (i * shift),&Data, 2);
 		}
 	}
 
 
-	resetFIFO();
+	resetFIFO(drv_data, cfg);
 	resetDMP();
 
 }
 
 
+// USER_CTRL register (DMP function)
 
 /**
  * 
 */
-void resetDMP() {
-    I2Cdev::writeBit(devAddr, MPU6050_RA_USER_CTRL, MPU6050_USERCTRL_DMP_RESET_BIT, true);
+void resetDMP(struct mpu6050_data *drv_data, const struct mpu6050_config *cfg) {
+	if(i2c_reg_update_byte(drv_data->i2c, cfg->i2c_addr, MPU6050_RA_USER_CTRL, MPU6050_USERCTRL_DMP_RESET_BIT, true) < 0){
+		return -EIO;
+	}
+}
+
+/** Reset the FIFO.
+ * This bit resets the FIFO buffer when set to 1 while FIFO_EN equals 0. This
+ * bit automatically clears to 0 after the reset has been triggered.
+ * @see MPU6050_RA_USER_CTRL
+ * @see MPU6050_USERCTRL_FIFO_RESET_BIT
+ */
+void resetFIFO(struct mpu6050_data *drv_data, const struct mpu6050_config *cfg) {
+	if(i2c_reg_update_byte(drv_data->i2c, cfg->i2c_addr, MPU6050_RA_USER_CTRL, MPU6050_USERCTRL_FIFO_RESET_BIT, true) < 0){
+		return -EIO;
+	}
 }
 
 /**
- * 
+  @brief      Fully calibrate Gyro from ZERO in about 6-7 Loops 600-700 readings
 */
-void resetFIFO() {
-    I2Cdev::writeBit(devAddr, MPU6050_RA_USER_CTRL, MPU6050_USERCTRL_FIFO_RESET_BIT, true);
-}
+int GyroCalibrate(int8_t Loops){
+	double kP = 0.3;
+	double kI = 90;
+	float x;
+	x = (100 - map(Loops, 1, 5, 20, 0)) * .01;
+	kP *= x;
+	kI *= x;
 
-/**
- * 
-*/
-int GyroCalibrate(int8_t offset){
-
+	PID( 0x43,  kP, kI,  Loops);
 	
 }
 
 
 /**
- * 
+  @brief      Fully calibrate Accel from ZERO in about 6-7 Loops 600-700 readings
 */
-int AccelCalibrate(int8_t offset){
+int AccelCalibrate(int8_t Loops){
 
+	float kP = 0.3;
+	float kI = 20;
+	float x;
+	x = (100 - map(Loops, 1, 5, 20, 0)) * .01;  //Need to write this map function as well
+	kP *= x;
+	kI *= x;
+	PID( 0x3B, kP, kI,  Loops);
 	
+
 }
 
 
@@ -482,7 +503,7 @@ int setDMPEnabled(struct mpu6050_data *drv_data, const struct mpu6050_config *cf
 	
 	// This function OR's the old value and the new value stored in the register. 	
 
-	if (i2c_reg_update_byte(drv_data->i2c, cfg->i2c_addr, MPU6050_RA_ZG_OFFS_USRH,	MPU6050_USERCTRL_DMP_EN_BIT, 1) < 0) {
+	if (i2c_reg_update_byte(drv_data->i2c, cfg->i2c_addr, MPU6050_RA_ZG_OFFS_USRH,	MPU6050_USERCTRL_DMP_EN_BIT, true) < 0) {
 			LOG_ERR("Failed to write Gyroscope Z axis offset.");
 			return -EIO;
 		}
@@ -491,13 +512,71 @@ int setDMPEnabled(struct mpu6050_data *drv_data, const struct mpu6050_config *cf
 
 
 
-/**
- * 
-*/
-int dmpInitialize(){
+
+// PWR_MGMT_1 register
+
+/** Trigger a full device reset.
+ * A small delay of ~50ms may be desirable after triggering a reset.
+ * @see MPU6050_RA_PWR_MGMT_1
+ * @see MPU6050_PWR1_DEVICE_RESET_BIT
+ */
+int reset(struct mpu6050_data *drv_data, const struct mpu6050_config *cfg){
+	
+	if (i2c_reg_update_byte(drv_data->i2c, cfg->i2c_addr, MPU6050_RA_USER_CTRL,	MPU6050_USERCTRL_SIG_COND_RESET_BIT, true) < 0) {
+			LOG_ERR("Failed to write Gyroscope Z axis offset.");
+			return -EIO;
+		}
 	
 }
 
+
+/** Set sleep mode status.
+ * @param enabled New sleep mode enabled status
+ * @see getSleepEnabled()
+ * @see MPU6050_RA_PWR_MGMT_1
+ * @see MPU6050_PWR1_SLEEP_BIT
+ */
+void setSleepEnabled(struct mpu6050_data *drv_data, const struct mpu6050_config *cfg, bool enable) {
+
+	
+	if (i2c_reg_update_byte(drv_data->i2c, cfg->i2c_addr, MPU6050_RA_PWR_MGMT_1, MPU6050_USERCTRL_SIG_COND_RESET_BIT, enable) < 0) {
+			LOG_ERR("Failed to write Gyroscope Z axis offset.");
+			return -EIO;
+		}
+}
+
+
+/** Set the I2C address of the specified slave (0-3).
+ * @param num Slave number (0-3)
+ * @param address New address for specified slave
+ * @see getSlaveAddress()
+ * @see MPU6050_RA_I2C_SLV0_ADDR
+ */
+void setSlaveAddress(uint8_t num, uint8_t address) {
+    if (num > 3) return;
+    I2Cdev::writeByte(devAddr, MPU6050_RA_I2C_SLV0_ADDR + num*3, address);
+}
+
+
+/** Set I2C Master Mode enabled status.
+ * @param enabled New I2C Master Mode enabled status
+ * @see getI2CMasterModeEnabled()
+ * @see MPU6050_RA_USER_CTRL
+ * @see MPU6050_USERCTRL_I2C_MST_EN_BIT
+ */
+void MPU6050::setI2CMasterModeEnabled(bool enabled) {
+    I2Cdev::writeBit(devAddr, MPU6050_RA_USER_CTRL, MPU6050_USERCTRL_I2C_MST_EN_BIT, enabled);
+}
+
+/** Reset the I2C Master.
+ * This bit resets the I2C Master when set to 1 while I2C_MST_EN equals 0.
+ * This bit automatically clears to 0 after the reset has been triggered.
+ * @see MPU6050_RA_USER_CTRL
+ * @see MPU6050_USERCTRL_I2C_MST_RESET_BIT
+ */
+void MPU6050::resetI2CMaster() {
+    I2Cdev::writeBit(devAddr, MPU6050_RA_USER_CTRL, MPU6050_USERCTRL_I2C_MST_RESET_BIT, true);
+}
 
 
 /**
@@ -505,7 +584,7 @@ int dmpInitialize(){
 */
 int dmpGetFifoPacketSize(){
 
-
+	
 }
 
 
@@ -530,7 +609,6 @@ int resetFifoCount(){
 /**
  * 
 */
-
 int getFifoBytes(){
 
 

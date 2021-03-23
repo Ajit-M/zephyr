@@ -42,6 +42,11 @@ THE SOFTWARE.
 #define MPU6050_INCLUDE_DMP_MOTIONAPPS20
 
 #include "mpu6050.h"
+#include <device.h>
+#include <drivers/gpio.h>
+#include <sys/util.h>
+#include <zephyr/types.h>
+
 
 // Tom Carpenter's conditional PROGMEM code
 // http://forum.arduino.cc/index.php?topic=129407.0
@@ -279,7 +284,7 @@ uint8_t MPU6050::dmpInitialize() {
 	// reset device
 	DEBUG_PRINTLN(F("\n\nResetting MPU6050..."));
 	reset();
-	delay(30); // wait after reset
+	k_msleep(50); // wait after reset, to let the reset complete its process
 
 	// enable sleep mode and wake cycle
 	/*Serial.println(F("Enabling sleep mode..."));
@@ -599,6 +604,29 @@ uint8_t MPU6050::dmpProcessFIFOPacket(const unsigned char *dmpData) {
 uint8_t MPU6050::dmpReadAndProcessFIFOPacket(uint8_t numPackets, uint8_t *processed) {
     uint8_t status;
     uint8_t buf[dmpPacketSize];
+// uint8_t MPU6050::dmpSetFIFORate(uint8_t fifoRate);
+// uint8_t MPU6050::dmpGetFIFORate();
+// uint8_t MPU6050::dmpGetSampleStepSizeMS();
+// uint8_t MPU6050::dmpGetSampleFrequency();
+// int32_t MPU6050::dmpDecodeTemperature(int8_t tempReg);
+
+//uint8_t MPU6050::dmpRegisterFIFORateProcess(inv_obj_func func, int16_t priority);
+//uint8_t MPU6050::dmpUnregisterFIFORateProcess(inv_obj_func func);
+//uint8_t MPU6050::dmpRunFIFORateProcesses();
+
+// uint8_t MPU6050::dmpSendQuaternion(uint_fast16_t accuracy);
+// uint8_t MPU6050::dmpSendGyro(uint_fast16_t elements, uint_fast16_t accuracy);
+// uint8_t MPU6050::dmpSendAccel(uint_fast16_t elements, uint_fast16_t accuracy);
+// uint8_t MPU6050::dmpSendLinearAccel(uint_fast16_t elements, uint_fast16_t accuracy);
+// uint8_t MPU6050::dmpSendLinearAccelInWorld(uint_fast16_t elements, uint_fast16_t accuracy);
+// uint8_t MPU6050::dmpSendControlData(uint_fast16_t elements, uint_fast16_t accuracy);
+// uint8_t MPU6050::dmpSendSensorData(uint_fast16_t elements, uint_fast16_t accuracy);
+// uint8_t MPU6050::dmpSendExternalSensorData(uint_fast16_t elements, uint_fast16_t accuracy);
+// uint8_t MPU6050::dmpSendGravity(uint_fast16_t elements, uint_fast16_t accuracy);
+// uint8_t MPU6050::dmpSendPacketNumber(uint_fast16_t accuracy);
+// uint8_t MPU6050::dmpSendQuantizedAccel(uint_fast16_t elements, uint_fast16_t accuracy);
+// uint8_t MPU6050::dmpSendEIS(uint_fast16_t elements, uint_fast16_t accuracy);
+
     for (uint8_t i = 0; i < numPackets; i++) {
         // read packet from FIFO
         getFIFOBytes(buf, dmpPacketSize);
