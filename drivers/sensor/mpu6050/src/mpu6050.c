@@ -554,6 +554,8 @@ void setSleepEnabled(struct mpu6050_data *drv_data, const struct mpu6050_config 
  */
 void setSlaveAddress(uint8_t num, uint8_t address) {
     if (num > 3) return;
+
+	
     I2Cdev::writeByte(devAddr, MPU6050_RA_I2C_SLV0_ADDR + num*3, address);
 }
 
