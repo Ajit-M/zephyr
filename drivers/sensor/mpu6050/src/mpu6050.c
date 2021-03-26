@@ -554,9 +554,12 @@ void setSleepEnabled(struct mpu6050_data *drv_data, const struct mpu6050_config 
  */
 void setSlaveAddress(uint8_t num, uint8_t address) {
     if (num > 3) return;
-
+	if(i2c_reg_write_byte(drv_data->i2c, cfg->i2c_addr, MPU6050_RA_I2C_SLV0_ADDR + num*3, address) < 0){
+		LOG_ERR("Failed to write Gyroscope Z axis offset.");
+		return -EIO;
+	}	
 	
-    I2Cdev::writeByte(devAddr, MPU6050_RA_I2C_SLV0_ADDR + num*3, address);
+    
 }
 
 
@@ -566,8 +569,13 @@ void setSlaveAddress(uint8_t num, uint8_t address) {
  * @see MPU6050_RA_USER_CTRL
  * @see MPU6050_USERCTRL_I2C_MST_EN_BIT
  */
-void MPU6050::setI2CMasterModeEnabled(bool enabled) {
-    I2Cdev::writeBit(devAddr, MPU6050_RA_USER_CTRL, MPU6050_USERCTRL_I2C_MST_EN_BIT, enabled);
+void setI2CMasterModeEnabled(bool enabled) {
+
+	if (i2c_reg_update_byte(drv_data->i2c, cfg->i2c_addr, MPU6050_RA_USER_CTRL, MPU6050_USERCTRL_I2C_MST_EN_BIT, enable) < 0) {
+			LOG_ERR("Failed to write Gyroscope Z axis offset.");
+			return -EIO;
+	}
+   
 }
 
 /** Reset the I2C Master.
@@ -576,7 +584,24 @@ void MPU6050::setI2CMasterModeEnabled(bool enabled) {
  * @see MPU6050_RA_USER_CTRL
  * @see MPU6050_USERCTRL_I2C_MST_RESET_BIT
  */
-void MPU6050::resetI2CMaster() {
+void resetI2CMaster() {
+
+	if (i2c_reg_update_byte(drv_data->i2c, cfg->i2c_addr, MPU6050_RA_USER_CTRL, MPU6050_USERCTRL_I2C_MST_RESET_BIT, enable) < 0) {
+			LOG_ERR("Failed to write Gyroscope Z axis offset.");
+			return -EIO;
+	}
+   
+}
+
+/** Reset the I2C Master.
+ * This bit resets the I2C Master when set to 1 while I2C_MST_EN equals 0.
+ * This bit automatically clears to 0 after the reset has been triggered.
+ * @see MPU6050_RA_USER_CTRL
+ * @see MPU6050_USERCTRL_I2C_MST_RESET_BIT
+ */
+void resetI2CMaster() {
+
+
     I2Cdev::writeBit(devAddr, MPU6050_RA_USER_CTRL, MPU6050_USERCTRL_I2C_MST_RESET_BIT, true);
 }
 
