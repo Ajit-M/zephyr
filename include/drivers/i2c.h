@@ -418,6 +418,33 @@ static inline int i2c_write(const struct device *dev, const uint8_t *buf,
 	return i2c_transfer(dev, &msg, 1, addr);
 }
 
+
+/**
+ * @brief Write a set amount of data to an I2C device.
+ *
+ * This routine writes a set amount of data synchronously.
+ *
+ * @param dev Pointer to the device structure for the driver instance.
+ * @param buf Memory pool from which the data is transferred.
+ * @param num_bytes Number of bytes to write.
+ * @param addr Address to the target I2C device for writing.
+ *
+ * @retval 0 If successful.
+ * @retval -EIO General input / output error.
+ */
+static inline int i2c_write_bit(const struct device *dev, const uint8_t *buf,
+			    uint32_t num_bytes, uint16_t addr)
+{
+	struct i2c_msg msg;
+
+	msg.buf = (uint8_t *)buf;
+	msg.len = num_bytes;
+	msg.flags = I2C_MSG_WRITE | I2C_MSG_STOP;
+
+	return i2c_transfer(dev, &msg, 1, addr);
+}
+
+
 /**
  * @brief Read a set amount of data from an I2C device.
  *
