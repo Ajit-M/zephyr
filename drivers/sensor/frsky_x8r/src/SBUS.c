@@ -18,29 +18,20 @@ void begin() {
 }
 
 void begin(bool useTimer) {
-	if (useTimer) {
-		noInterrupts();
-		TCCR2A  = 0;
-		TCCR2B  = 0;
-		TCNT2   = 0;
-		OCR2A   = 249;
-		TCCR2A |= (1 << WGM21);
-		TCCR2B |= (1 << CS22);
-		TIMSK2 |= (1 << OCIE2A);
-		interrupts();
-	}
 
+	// Setting up the buffer of 18 channels
 	for (int byte i = 0; i<18; i++) {
 		_channels[i]      = 0;
 	}
 
+	//  Frame decoding related variables.
 	_goodFrames         = 0;
 	_lostFrames         = 0;
 	_decoderErrorFrames = 0;
 	_failsafe           = SBUS_FAILSAFE_INACTIVE;
 }
 
-void SBUS::process() {
+void process() {
 	static byte buffer[25];
 	static byte buffer_index = 0;
 
@@ -68,7 +59,7 @@ void SBUS::process() {
 			_channels[2]  = ((buffer[3]>>6 |buffer[4]<<2 |buffer[5]<<10)  & 0x07FF);
 			_channels[3]  = ((buffer[5]>>1 |buffer[6]<<7)                 & 0x07FF);
 			_channels[4]  = ((buffer[6]>>4 |buffer[7]<<4)                 & 0x07FF);
-			_channels[5]  = ((buffer[7]>>7 |buffer[8]<<1 |buffer[9]<<9)   & 0x07FF);
+			_channels[5]  = ((buffer[7]>>7 |buffer[8]<<1 |buffer[9]<<9)   & 0x07FF);	
 			_channels[6]  = ((buffer[9]>>2 |buffer[10]<<6)                & 0x07FF);
 			_channels[7]  = ((buffer[10]>>5|buffer[11]<<3)                & 0x07FF);
 			_channels[8]  = ((buffer[12]   |buffer[13]<<8)                & 0x07FF);
