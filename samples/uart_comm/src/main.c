@@ -26,13 +26,7 @@
 
 void main(void)
 {
-
-	
 	const struct device *i2c_dev;
-
-	
-
-	
 
 	i2c_dev = device_get_binding(I2C_1);
 

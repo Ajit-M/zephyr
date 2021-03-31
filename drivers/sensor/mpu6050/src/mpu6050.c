@@ -593,18 +593,45 @@ void resetI2CMaster() {
    
 }
 
-/** Reset the I2C Master.
- * This bit resets the I2C Master when set to 1 while I2C_MST_EN equals 0.
- * This bit automatically clears to 0 after the reset has been triggered.
- * @see MPU6050_RA_USER_CTRL
- * @see MPU6050_USERCTRL_I2C_MST_RESET_BIT
+/** Set clock source setting.
+ * An internal 8MHz oscillator, gyroscope based clock, or external sources can
+ * be selected as the MPU-60X0 clock source. When the internal 8 MHz oscillator
+ * or an external source is chosen as the clock source, the MPU-60X0 can operate
+ * in low power modes with the gyroscopes disabled.
+ *
+ * Upon power up, the MPU-60X0 clock source defaults to the internal oscillator.
+ * However, it is highly recommended that the device be configured to use one of
+ * the gyroscopes (or an external clock source) as the clock reference for
+ * improved stability. The clock source can be selected according to the following table:
+ *
+ * <pre>
+ * CLK_SEL | Clock Source
+ * --------+--------------------------------------
+ * 0       | Internal oscillator
+ * 1       | PLL with X Gyro reference
+ * 2       | PLL with Y Gyro reference
+ * 3       | PLL with Z Gyro reference
+ * 4       | PLL with external 32.768kHz reference
+ * 5       | PLL with external 19.2MHz reference
+ * 6       | Reserved
+ * 7       | Stops the clock and keeps the timing generator in reset
+ * </pre>
+ *
+ * @param source New clock source setting
+ * @see getClockSource()
+ * @see MPU6050_RA_PWR_MGMT_1
+ * @see MPU6050_PWR1_CLKSEL_BIT
+ * @see MPU6050_PWR1_CLKSEL_LENGTH
  */
-void resetI2CMaster() {
+void setClockSource(uint8_t source) {
 
+	if (i2c_reg_update_byte(drv_data->i2c, cfg->i2c_addr, MPU6050_RA_PWR_MGMT_1, MPU6050_USERCTRL_I2C_MST_RESET_BIT, enable) < 0) {
+			LOG_ERR("Failed to write Gyroscope Z axis offset.");
+			return -EIO;
+	}
 
-    I2Cdev::writeBit(devAddr, MPU6050_RA_USER_CTRL, MPU6050_USERCTRL_I2C_MST_RESET_BIT, true);
+    I2Cdev::writeBits(devAddr, MPU6050_RA_PWR_MGMT_1, MPU6050_PWR1_CLKSEL_BIT, MPU6050_PWR1_CLKSEL_LENGTH, source);
 }
-
 
 /**
  * 
