@@ -5,8 +5,21 @@
 #define SBUS_FAILSAFE_ACTIVE   1
 #define SBUS_STARTBYTE         0x0f
 #define SBUS_ENDBYTE           0x00
+#define FRSKY_SBUS             "FRSKY" 
 
-SBUS(HardwareSerial & serial) : _serial (serial) {}
+struct frsky_data {
+    uint8_t _channels[18];
+    uint8_t _failsafe;
+    long int _goodFrames;
+    long int _lostFrames;
+    long int _decoderErrorFrames;
+    long long int _lastGoodFrame;
+}
+
+struct frsky_config
+
+
+SBUS(HardwareSerial & serial) : _serial (serial) {} // Need to remove this constructor
 void begin();
 void begin(bool useTimer);
 void process();
@@ -19,11 +32,6 @@ long getLostFrames();
 long getDecoderErrorFrames();
 long long getLastTime();
 HardwareSerial & _serial;
-int _channels[18];
-int _failsafe;
-long _goodFrames;
-long _lostFrames;
-long _decoderErrorFrames;
-long long _lastGoodFrame;
+
 
 #endif

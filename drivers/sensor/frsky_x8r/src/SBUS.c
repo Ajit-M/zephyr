@@ -7,11 +7,15 @@
 #include <drivers/uart.h>
 #include <drivers/i2c.h>
 #include <stdbool.h>
+#include <include/logging/log.h>
 
 
 #include "include/SBUS.h"
 
 
+#define DT_DRV_COMPAT frsky_receiver
+
+LOG_MODULE_REGISTER(, CONFIG_SENSOR_LOG_LEVEL);
 
 void begin() {
 	begin(true);
@@ -32,17 +36,18 @@ void begin(bool useTimer) {
 }
 
 void process() {
-	static byte buffer[25];
-	static byte buffer_index = 0;
+	static uint8_t buffer[25]; 
+	static uint8_t buffer_index = 0;
 
-	while (_serial.available()) {
+/*
+ 	while (_serial.available()) {
 		byte rx = _serial.read();
 		if (buffer_index == 0 && rx != SBUS_STARTBYTE) {
 			//incorrect start byte, out of sync
 			_decoderErrorFrames++;
 			continue;
 		}
-
+ */
 		buffer[buffer_index++] = rx;
 
 		if (buffer_index == 25) {
@@ -89,7 +94,7 @@ void process() {
 	}
 }
 
-int SBUS::getChannel(int channel) {
+int getChannel(int channel) {
 	if (channel < 1 or channel > 18) {
 		return 0;
 	} else {
@@ -97,7 +102,7 @@ int SBUS::getChannel(int channel) {
 	}
 }
 
-int SBUS::getNormalizedChannel(int channel) {
+int getNormalizedChannel(int channel) {
 	if (channel < 1 or channel > 18) {
 		return 0;
 	} else {
@@ -105,26 +110,28 @@ int SBUS::getNormalizedChannel(int channel) {
 	}
 }
 
-int SBUS::getFailsafeStatus() {
+int getFailsafeStatus() {
 	return _failsafe;
 }
 
-int SBUS::getFrameLoss() {
+int getFrameLoss() {
 	return (int) ((_lostFrames + _decoderErrorFrames) * 100 / (_goodFrames + _lostFrames + _decoderErrorFrames));
 }
 
-long SBUS::getGoodFrames() {
+long getGoodFrames() {
 	return _goodFrames;
 }
 
-long SBUS::getLostFrames() {
+long getLostFrames() {
 	return _lostFrames;
 }
 
-long SBUS::getDecoderErrorFrames() {
+long getDecoderErrorFrames() {
 	return _decoderErrorFrames;
 }
 
-long long SBUS::getLastTime() {
+long long getLastTime() {
 	return _lastGoodFrame;
 }
+
+
