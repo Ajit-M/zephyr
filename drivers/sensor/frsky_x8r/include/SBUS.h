@@ -8,21 +8,26 @@
 #define FRSKY_SBUS             "FRSKY" 
 
 struct frsky_data {
+
+    const struct device *frsky_device;
+
     uint8_t _channels[18];
     uint8_t _failsafe;
     long int _goodFrames;
     long int _lostFrames;
     long int _decoderErrorFrames;
     long long int _lastGoodFrame;
-}
+};
 
-struct frsky_config
+const struct frsky_config{
+
+    const char *uart_label;
+
+};
 
 
-SBUS(HardwareSerial & serial) : _serial (serial) {} // Need to remove this constructor
-void begin();
-void begin(bool useTimer);
-void process();
+int init();
+void processDataFrames();
 int getChannel(int channel);
 int getNormalizedChannel(int channel);
 int getFailsafeStatus();
@@ -31,7 +36,7 @@ long getGoodFrames();
 long getLostFrames();
 long getDecoderErrorFrames();
 long long getLastTime();
-HardwareSerial & _serial;
+
 
 
 #endif

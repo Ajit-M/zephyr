@@ -18,7 +18,13 @@
 #include "mpu6050.h"
 
 
-LOG_MODULE_REGISTER(MPU6050, CONFIG_SENSOR_LOG_LEVEL);
+
+LOG_MODULE_REGISTER(MPU6050, CONFIG_SENSOR_LOG_LEVEL); //Registers the module in the Zephyr Kernel 
+
+
+
+
+
 
 /* see "Accelerometer Measurements" section from register map description */
 static void mpu6050_convert_accel(struct sensor_value *val, int16_t raw_val,

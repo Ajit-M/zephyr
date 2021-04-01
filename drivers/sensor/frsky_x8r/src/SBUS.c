@@ -1,5 +1,6 @@
 #include <zephyr.h>
 #include <device.h>
+#include <drivers/sensor.h>
 #include <drivers/gpio.h>
 #include <sys/printk.h>
 #include <drivers/pwm.h>
@@ -13,33 +14,70 @@
 #include "include/SBUS.h"
 
 
-#define DT_DRV_COMPAT frsky_receiver
+#define DT_DRV_COMPAT frsky_receiver // Device tree Compatibility macro
 
-LOG_MODULE_REGISTER(, CONFIG_SENSOR_LOG_LEVEL);
+LOG_MODULE_REGISTER(FRSKY, CONFIG_SENSOR_LOG_LEVEL); // Logger registration
 
-void begin() {
-	begin(true);
+
+/* 
+	1. Sensor Sample Fetch api
+	2. Sensor Channel get api
+	3. API struct 
+	4. Sensor library struct for storing data?
+	5. 
+
+ */
+
+
+/**
+ * @brief Sensor Driver API Struct
+ * 
+ * @param  
+ */
+
+
+static const struct sensor_driver_api frsky_sensor_api = {
+	.sample_fetch = frsky_sample_fetch;
+	.channel_get = frsky_channel_get;
+};
+
+
+/**
+ * @brief 
+ * 
+ * @param 
+ * @return int 
+ */
+static int frsky_sample_fetch(const struct device *dev){
+	struct frsky_data *drv_data = dev->data;
+
+	
+
+
+
+	return 0;
 }
 
-void begin(bool useTimer) {
 
-	// Setting up the buffer of 18 channels
-	for (int byte i = 0; i<18; i++) {
-		_channels[i]      = 0;
-	}
+/**
+ * @brief 
+ * 
+ * @param 
+ * @return int 
+ */
+static int frsky_channel_get(){
 
-	//  Frame decoding related variables.
-	_goodFrames         = 0;
-	_lostFrames         = 0;
-	_decoderErrorFrames = 0;
-	_failsafe           = SBUS_FAILSAFE_INACTIVE;
+	return 0;
 }
 
-void process() {
+
+void processDataFrames() {
 	static uint8_t buffer[25]; 
 	static uint8_t buffer_index = 0;
 
-/*
+
+
+
  	while (_serial.available()) {
 		byte rx = _serial.read();
 		if (buffer_index == 0 && rx != SBUS_STARTBYTE) {
@@ -47,7 +85,7 @@ void process() {
 			_decoderErrorFrames++;
 			continue;
 		}
- */
+
 		buffer[buffer_index++] = rx;
 
 		if (buffer_index == 25) {
@@ -135,3 +173,37 @@ long long getLastTime() {
 }
 
 
+
+/**
+ * @brief Initialization function of the sensor API
+ * 
+ * @param dev device structure of the sensor
+ * @return int 
+ */
+int frsky_init(const struct device *dev) {
+
+	// Setting up the buffer of 18 channels
+	for (int byte i = 0; i<18; i++) {
+		_channels[i]      = 0;
+	}
+
+	//  Frame decoding related variables.
+	_goodFrames         = 0;
+	_lostFrames         = 0;
+	_decoderErrorFrames = 0;
+	_failsafe           = SBUS_FAILSAFE_INACTIVE;
+
+	// UART initialization of the device and the polling in the data from the sensor
+	struct frsky_data *drv_data =  dev->data ;  // Need to understand this later on
+	const struct frsky_config *cfg = dev->config;
+
+	drv_data->frsky_device = device_get_binding(cfg->uart_label);
+
+	if(!drv_data->frsky_device){
+		LOG_DBG("FRSKY UART Device not found");
+		return -EINVAL;
+	}
+	
+	return 0;
+
+}
