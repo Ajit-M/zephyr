@@ -56,7 +56,6 @@
 		led3 = &blue_led_6;
 		sw0 = &user_button;
 		pwm-led0 = &pwm2;
-	
 	};
 };
 
