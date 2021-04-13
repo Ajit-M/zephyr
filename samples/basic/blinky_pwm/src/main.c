@@ -19,9 +19,9 @@
 // #if 0
 #if DT_NODE_HAS_STATUS(PWM_LED0_NODE, okay)
 #define DEV_NAME DEVICE_DT_NAME(PWM_LED0_NODE)
-#define PWM_CTLR	DT_PWMS_CTLR(PWM_LEDx0_NODE)
-// #define PWM_CHANNEL	DT_PWMS_CHANNEL(PWM_LED0_NODE)
-#define PWM_FLAGS	DT_PWMS_FLAGS(PWM_LED0_NODE)
+// #define PWM_CTLR	DT_PWMS_CTLR(PWM_LEDx0_NODE)
+// // #define PWM_CHANNEL	DT_PWMS_CHANNEL(PWM_LED0_NODE)
+// #define PWM_FLAGS	DT_PWMS_FLAGS(PWM_LED0_NODE)
 #else
 #error "Unsupported board: pwm-led0 devicetree alias is not defined"
 #define PWM_CTLR	DT_INVALID_NODE
@@ -42,11 +42,11 @@ void main(void)
 
 	printk("PWM-based blinky\n");
 
-	pwm = DEVICE_DT_GET(DEV_NAME);
-	if (!device_is_ready(pwm)) {
-		printk("Error: PWM device %s is not ready\n", pwm->name);
-		return;
-	}
+	// pwm = DEVICE_DT_GET(DEV_NAME);
+	// if (!device_is_ready(pwm)) {
+	// 	printk("Error: PWM device %s is not ready\n", pwm->name);
+	// 	return;
+	// }
 
 	// /*
 	//  * In case the default MAX_PERIOD_USEC value cannot be set for
@@ -91,4 +91,14 @@ void main(void)
 
 	// 	k_sleep(K_SECONDS(4U));
 	// }
+
+	pwm_dev = device_get_binding(DEV_NAME);
+	if(!pwm_dev){
+		printk("Cannot get the PWM device")
+
+	}
+
+
 }
+
+
