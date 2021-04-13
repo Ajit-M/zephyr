@@ -1,4 +1,4 @@
-# Zephyr RTOS Rescources 
+# Zephyr RTOS Resources 
 
 Autopilot Development project for Autonomous Aerial Vehicles.
 
