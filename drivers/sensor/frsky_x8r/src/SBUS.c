@@ -10,7 +10,6 @@
 #include <stdbool.h>
 #include <include/logging/log.h>
 
-
 #include "include/SBUS.h"
 
 
@@ -18,28 +17,11 @@
 
 LOG_MODULE_REGISTER(FRSKY, CONFIG_SENSOR_LOG_LEVEL); // Logger registration
 
-
-/* 
-	1. Sensor Sample Fetch api
-	2. Sensor Channel get api
-	3. API struct 
-	4. Sensor library struct for storing data?
-	5. 
-
- */
-
-
 /**
  * @brief Sensor Driver API Struct
  * 
  * @param  
  */
-
-
-static const struct sensor_driver_api frsky_sensor_api = {
-	.sample_fetch = frsky_sample_fetch;
-	.channel_get = frsky_channel_get;
-};
 
 
 /**
@@ -51,9 +33,18 @@ static const struct sensor_driver_api frsky_sensor_api = {
 static int frsky_sample_fetch(const struct device *dev){
 	struct frsky_data *drv_data = dev->data;
 
-	
 
+	return 0;
+}
 
+/**
+ * @brief 
+ * 
+ * @param 
+ * @return int 
+ */
+static int frsky_channel_fetch(const struct device *dev){
+	struct frsky_data *drv_data = dev->data;
 
 	return 0;
 }
@@ -74,9 +65,6 @@ static int frsky_channel_get(){
 void processDataFrames() {
 	static uint8_t buffer[25]; 
 	static uint8_t buffer_index = 0;
-
-
-
 
  	while (_serial.available()) {
 		byte rx = _serial.read();
@@ -195,9 +183,8 @@ int frsky_init(const struct device *dev) {
 
 	// UART initialization of the device and the polling in the data from the sensor
 	struct frsky_data *drv_data =  dev->data ;  // Need to understand this later on
-	const struct frsky_config *cfg = dev->config;
 
-	drv_data->frsky_device = device_get_binding(cfg->uart_label);
+	drv_data->uart_dev = device_get_binding(cfg->uart_label);
 
 	if(!drv_data->frsky_device){
 		LOG_DBG("FRSKY UART Device not found");
@@ -207,3 +194,18 @@ int frsky_init(const struct device *dev) {
 	return 0;
 
 }
+
+
+static const struct sensor_driver_api frsky_driver_api = {
+	.sample_fetch = frsky_sample_fetch,
+	.channel_get = frsky_channel_get,
+};
+
+
+static struct frsky_data frsky_driver;
+
+DEVICE_DT_INST_DEFINE(0, frsky_init, device_pm_control_nop,
+		    &frsky_driver, NULL,
+		    POST_KERNEL, CONFIG_SENSOR_INIT_PRIORITY,
+		    &frsky_driver_api);
+

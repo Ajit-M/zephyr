@@ -9,7 +9,7 @@
 
 struct frsky_data {
 
-    const struct device *frsky_device;
+    const struct uart_dev *frsky_device;
 
     uint8_t _channels[18];
     uint8_t _failsafe;
@@ -17,12 +17,6 @@ struct frsky_data {
     long int _lostFrames;
     long int _decoderErrorFrames;
     long long int _lastGoodFrame;
-};
-
-const struct frsky_config{
-
-    const char *uart_label;
-
 };
 
 
@@ -36,7 +30,5 @@ long getGoodFrames();
 long getLostFrames();
 long getDecoderErrorFrames();
 long long getLastTime();
-
-
 
 #endif

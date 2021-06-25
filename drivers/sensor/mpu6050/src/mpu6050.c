@@ -197,18 +197,6 @@ u(buf[2]);
 
 
 
-static const struct sensor_driver_api mpu6050_driver_api = {
-#if CONFIG_MPU6050_TRIGGER
-	.trigger_set = mpu6050_trigger_set,
-#endif
-	.sample_fetch = mpu6050_sample_fetch,
-	.channel_get = mpu6050_channel_get,
-};
-
-
-
-
-
 
 int mpu6050_init(const struct device *dev){	
 
@@ -738,6 +726,14 @@ int dmpGetLinearAccelInWorld(){
 
 }
 
+
+static const struct sensor_driver_api mpu6050_driver_api = {
+#if CONFIG_MPU6050_TRIGGER
+	.trigger_set = mpu6050_trigger_set,
+#endif
+	.sample_fetch = mpu6050_sample_fetch,
+	.channel_get = mpu6050_channel_get,
+};
 
 
 static struct mpu6050_data mpu6050_driver;
